@@ -1,188 +1,193 @@
+#include "queue_module.h"
 #include <iostream>
 #include <string>
 using namespace std;
 
-//  STRUKTUR DATA
-struct Passenger {
-    int    id;
-    string name;
-    string flight;
-    string seat;
-    Passenger* next;
-};
+// CONSTRUCTOR & DESTRUCTOR
 
-struct PassengerQueue {
-    Passenger* front;
-    Passenger* rear;
-    int        size;
-};
-//  INISIALISASI
+QueueCheckIn::QueueCheckIn() : front(nullptr), rear(nullptr), ukuran(0) {}
 
-void initQueue(PassengerQueue& q) {
-    q.front = nullptr;
-    q.rear  = nullptr;
-    q.size  = 0;
+QueueCheckIn::~QueueCheckIn() {
+    while (!isEmpty()) {
+        Penumpang tmp = dequeue();
+        (void)tmp; // destructor membersihkan semua node
+    }
+}
+// isEmpty  –  O(1)
+
+bool QueueCheckIn::isEmpty() const {
+    return front == nullptr;
+}
+// getUkuran
+
+int QueueCheckIn::getUkuran() const {
+    return ukuran;
 }
 
-bool isEmpty(const PassengerQueue& q) {
-    return q.front == nullptr;
-}
+// ENQUEUE
 
-//  ENQUEUE
+void QueueCheckIn::enqueue(Penumpang p) {
+    QueueNode* node = new QueueNode(p);
 
-void enqueue(PassengerQueue& q, int id,
-             const string& name,
-             const string& flight,
-             const string& seat)
-{
-    Passenger* p = new Passenger();
-    p->id     = id;
-    p->name   = name;
-    p->flight = flight;
-    p->seat   = seat;
-    p->next   = nullptr;
-
-    if (isEmpty(q)) {
-        q.front = p;
-        q.rear  = p;
+    if (isEmpty()) {
+        front = node;
+        rear  = node;
     } else {
-        q.rear->next = p;
-        q.rear       = p;
+        rear->next = node;
+        rear       = node;
     }
-    q.size++;
-
-    cout << "\n[OK] Penumpang \"" << name
-         << "\" berhasil masuk antrian check-in.\n";
+    ukuran++;
 }
+// DEQUEUE
 
-//  DEQUEUE
+Penumpang QueueCheckIn::dequeue() {
+    if (isEmpty()) {
+        // Kembalikan struct kosong jika antrian kosong
+        Penumpang kosong = {0, "", "", "", "", "", "", 0};
+        return kosong;
+    }
 
-void dequeue(PassengerQueue& q) {
-    if (isEmpty(q)) {
-        cout << "\n[INFO] Antrian kosong. Tidak ada penumpang yang menunggu.\n";
+    QueueNode* tmp   = front;
+    Penumpang  data  = tmp->data;
+    front            = front->next;
+    if (front == nullptr) rear = nullptr;
+    ukuran--;
+
+    delete tmp;
+    return data;
+}
+// PEEK
+
+Penumpang QueueCheckIn::peek() const {
+    if (isEmpty()) {
+        Penumpang kosong = {0, "", "", "", "", "", "", 0};
+        return kosong;
+    }
+    return front->data;
+}
+// TAMBAH PENUMPANG
+
+void QueueCheckIn::tambahPenumpang(Penumpang p) {
+    enqueue(p);
+    cout << "\n  [OK] Penumpang \"" << p.nama
+         << "\" (Tiket: " << p.nomorTiket << ")"
+         << " berhasil masuk antrian check-in.\n";
+    cout << "  Posisi dalam antrian: " << ukuran << "\n";
+}
+// PANGGIL PENUMPANG BERIKUTNYA
+
+void QueueCheckIn::panggilPenumpangBerikutnya() {
+    if (isEmpty()) {
+        cout << "\n  [INFO] Antrian kosong. Tidak ada penumpang yang menunggu.\n";
         return;
     }
 
-    Passenger* served = q.front;
-    q.front = q.front->next;
-    if (q.front == nullptr) q.rear = nullptr;
-    q.size--;
-
-    cout << "\n[DILAYANI] Penumpang dipanggil ke konter check-in:\n";
-    cout << "  ID      : " << served->id     << "\n";
-    cout << "  Nama    : " << served->name   << "\n";
-    cout << "  Flight  : " << served->flight << "\n";
-    cout << "  Kursi   : " << served->seat   << "\n";
-    cout << "  Sisa antrian: " << q.size << " penumpang\n";
-
-    delete served;
+    Penumpang p = dequeue();
+    cout << "\n  +--------------------------------------------------+\n";
+    cout << "  |  [DIPANGGIL] Penumpang menuju konter check-in!  |\n";
+    cout << "  +--------------------------------------------------+\n";
+    cout << "  ID          : " << p.id           << "\n";
+    cout << "  Nama        : " << p.nama         << "\n";
+    cout << "  No. Tiket   : " << p.nomorTiket   << "\n";
+    cout << "  Maskapai    : " << p.maskapai     << "\n";
+    cout << "  Tujuan      : " << p.tujuan       << "\n";
+    cout << "  Gate        : " << p.gateBoarding << "\n";
+    cout << "  Boarding    : " << p.waktuBoarding << "\n";
+    cout << "\n  Sisa antrian: " << ukuran << " penumpang\n";
 }
+// TAMPILKAN ANTRIAN
 
-//  TAMPILKAN SELURUH ANTRIAN
-
-void displayQueue(const PassengerQueue& q) {
-    if (isEmpty(q)) {
-        cout << "\n[INFO] Antrian kosong.\n";
+void QueueCheckIn::tampilkanAntrian() const {
+    if (isEmpty()) {
+        cout << "\n  [INFO] Antrian kosong.\n";
         return;
     }
 
-    cout << "\n========================================\n";
-    cout << "   ANTRIAN CHECK-IN PENUMPANG BANDARA\n";
-    cout << "========================================\n";
-    cout << "No  | ID   | Nama               | Flight | Kursi\n";
-    cout << "----+------+--------------------+--------+------\n";
+    cout << "\n  ============================================================\n";
+    cout << "       ANTRIAN CHECK-IN PENUMPANG BANDARA\n";
+    cout << "  ============================================================\n";
+    cout << "  No | ID | Nama               | No.Tiket  | Tujuan    | Gate\n";
+    cout << "  ---+----+--------------------+-----------+-----------+-----\n";
 
-    Passenger* cur = q.front;
+    QueueNode* cur = front;
     int pos = 1;
     while (cur != nullptr) {
-        cout << " " << pos++ << "  | " << cur->id << "  | ";
+        Penumpang& p = cur->data;
 
-        // padding nama
-        cout << cur->name;
-        int pad = 19 - (int)cur->name.length();
-        for (int i = 0; i < pad; i++) cout << " ";
+        cout << "  " << pos++;
 
-        cout << "| " << cur->flight << "   | " << cur->seat << "\n";
+        // padding kolom
+        cout << "  | " << p.id;
+        cout << "  | " << p.nama;
+        int padNama = 19 - (int)p.nama.length();
+        for (int i = 0; i < padNama; i++) cout << " ";
+
+        cout << "| " << p.nomorTiket;
+        int padTiket = 10 - (int)p.nomorTiket.length();
+        for (int i = 0; i < padTiket; i++) cout << " ";
+
+        cout << "| " << p.tujuan;
+        int padTujuan = 10 - (int)p.tujuan.length();
+        for (int i = 0; i < padTujuan; i++) cout << " ";
+
+        cout << "| " << p.gateBoarding << "\n";
+
         cur = cur->next;
     }
-    cout << "========================================\n";
-    cout << "Jumlah penumpang menunggu: " << q.size << "\n";
+    cout << "  ============================================================\n";
+    cout << "  Jumlah penumpang menunggu: " << ukuran << "\n";
 }
 
-//  JUMLAH PENUMPANG MENUNGGU 
+// TAMPILKAN JUMLAH MENUNGGU 
 
-void countPassengers(const PassengerQueue& q) {
-    cout << "\n[INFO] Jumlah penumpang dalam antrian: " << q.size << "\n";
+void QueueCheckIn::tampilkanJumlahMenunggu() const {
+    cout << "\n  [INFO] Jumlah penumpang dalam antrian check-in: "
+         << ukuran << "\n";
 }
 
-//  HAPUS SELURUH ANTRIAN
+// MENU ANTRIAN  –  dipanggil dari main.cpp
 
-void clearQueue(PassengerQueue& q) {
-    while (!isEmpty(q)) {
-        Passenger* tmp = q.front;
-        q.front = q.front->next;
-        delete tmp;
-    }
-    q.rear = nullptr;
-    q.size = 0;
-}
-
-//  MENU QUEUE
-void menuQueue() {
-    PassengerQueue q;
-    initQueue(q);
-    int nextId = 1001;
-    int choice;
-
+void menuAntrian(QueueCheckIn& queue) {
+    int pilihan;
     do {
-        cout << "\n+--------------------------------------+\n";
-        cout << "|   MODUL QUEUE - CHECK-IN PENUMPANG  |\n";
-        cout << "+--------------------------------------+\n";
-        cout << "| 1. Tambah Penumpang ke Antrian       |\n";
-        cout << "| 2. Panggil Penumpang Berikutnya      |\n";
-        cout << "| 3. Tampilkan Seluruh Antrian         |\n";
-        cout << "| 4. Jumlah Penumpang Menunggu         |\n";
-        cout << "| 0. Keluar                            |\n";
-        cout << "+--------------------------------------+\n";
-        cout << "Pilihan: ";
-        cin >> choice;
+        cout << "\n  +----------------------------------------------+\n";
+        cout << "  |     MODUL QUEUE - ANTRIAN CHECK-IN          |\n";
+        cout << "  +----------------------------------------------+\n";
+        cout << "  | 1. Tambah Penumpang ke Antrian               |\n";
+        cout << "  | 2. Panggil Penumpang Berikutnya              |\n";
+        cout << "  | 3. Tampilkan Seluruh Antrian                 |\n";
+        cout << "  | 4. Jumlah Penumpang Menunggu                 |\n";
+        cout << "  | 0. Kembali ke Menu Utama                     |\n";
+        cout << "  +----------------------------------------------+\n";
+        cout << "  Pilihan: ";
+        cin >> pilihan;
         cin.ignore();
 
-        if (choice == 1) {
-            string name, flight, seat;
-            cout << "Nama penumpang   : "; getline(cin, name);
-            cout << "Nomor penerbangan: "; getline(cin, flight);
-            cout << "Nomor kursi      : "; getline(cin, seat);
-            enqueue(q, nextId++, name, flight, seat);
+        if (pilihan == 1) {
+            Penumpang p;
+            p.id = queue.getUkuran() + 1;
+            cout << "\n  ===== INPUT DATA PENUMPANG =====\n";
+            cout << "  Nama            : "; getline(cin, p.nama);
+            cout << "  No. Tiket       : "; getline(cin, p.nomorTiket);
+            cout << "  Maskapai        : "; getline(cin, p.maskapai);
+            cout << "  Tujuan          : "; getline(cin, p.tujuan);
+            cout << "  Gate Boarding   : "; getline(cin, p.gateBoarding);
+            cout << "  Waktu (HH:MM)   : "; getline(cin, p.waktuBoarding);
+            cout << "  Durasi (menit)  : "; cin >> p.durasiLayanan; cin.ignore();
+            queue.tambahPenumpang(p);
 
-        } else if (choice == 2) {
-            dequeue(q);
+        } else if (pilihan == 2) {
+            queue.panggilPenumpangBerikutnya();
 
-        } else if (choice == 3) {
-            displayQueue(q);
+        } else if (pilihan == 3) {
+            queue.tampilkanAntrian();
 
-        } else if (choice == 4) {
-            countPassengers(q);
+        } else if (pilihan == 4) {
+            queue.tampilkanJumlahMenunggu();
 
-        } else if (choice != 0) {
-            cout << "\n[ERROR] Pilihan tidak valid.\n";
+        } else if (pilihan != 0) {
+            cout << "\n  [ERROR] Pilihan tidak valid.\n";
         }
 
-    } while (choice != 0);
-
-    clearQueue(q);
-}
-
-//  MAIN
-
-int main() {
-    cout << "==========================================\n";
-    cout << "   AIRPORT PASSENGER SERVICE SYSTEM\n";
-    cout << "   Topik 7 | Modul Queue - Check-in\n";
-    cout << "==========================================\n";
-
-    menuQueue();
-
-    cout << "\nTerima kasih.\n";
-    return 0;
+    } while (pilihan != 0);
 }
